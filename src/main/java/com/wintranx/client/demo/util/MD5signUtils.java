@@ -2,6 +2,7 @@ package com.wintranx.client.demo.util;
 
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.serializer.SerializerFeature;
 import lombok.extern.slf4j.Slf4j;
@@ -106,28 +107,46 @@ public class MD5signUtils {
          * ...
          * ***/
         /* ansc码升序排列*/
-        Object[] key = result.keySet().toArray();
-        Arrays.sort(key);
+        Object[] keys = result.keySet().toArray();
+        Arrays.sort(keys);
         StringBuffer sb = new StringBuffer();
-        int length = key.length;
+        StringBuffer printSb = new StringBuffer();
+        int length = keys.length;
         for (int i = 0; i < length; i++) {
-            Object value = result.get(key[i]);
+            Object key= keys[i];
+            Object value = result.get(key);
+            String addString = "";
             if (value instanceof String) {
-                if (((String) value).startsWith("{") || ((String) value).startsWith("[")) {
-                    String innerValue = JSON.toJSONString(JSONObject.parseObject((String)value), SerializerFeature.MapSortField);
-                    sb.append(key[i] + "=" + innerValue);
-                } else {
-                    sb.append(key[i] + "=" + result.get(key[i]));
+                try {
+                    if (((String) value).startsWith("{")) {
+                        String innerValue = JSON.toJSONString(JSONObject.parseObject((String) value), SerializerFeature.MapSortField);
+                        addString = key + "=" + innerValue;
+                    } else if (((String) value).startsWith("[")) {
+                        String innerValue = JSON.toJSONString(JSONArray.parseArray((String)value), SerializerFeature.MapSortField);
+                        addString = key + "=" + innerValue;
+                    } else {
+                        addString = key + "=" + value;
+                    }
+                } catch (Exception e) {
+                    addString = key + "=" + value;
                 }
+
             } else {
-                String innerValue = JSON.toJSONString(result.get(key[i]), SerializerFeature.MapSortField);
-                sb.append(key[i] + "=" + innerValue);
+                String innerValue = JSON.toJSONString(result.get(key), SerializerFeature.MapSortField);
+                addString = key + "=" + innerValue;
             }
-            if (i != key.length - 1) {// 拼接时，不包括最后一个&字符
+            sb.append(addString);
+            if ("card".equals(key.toString())) {
+                printSb.append("card={******}");
+            } else {
+                printSb.append(addString);
+            }
+            if (i != keys.length - 1) {// 拼接时，不包括最后一个&字符
+                printSb.append('&');
                 sb.append('&');
             }
         }
-        log.info("--------------------md5String :" + sb.toString());
+        log.info("--------------------md5String :" + printSb.toString());
         /* MD5加密,并加入Map中*/
         orgMap.put(signFd, generateMd5(sb.toString(), charSet));
 
